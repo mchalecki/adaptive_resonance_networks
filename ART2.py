@@ -108,17 +108,12 @@ class ART2(object):
         self.si = np.zeros(self.input_size)
 
         """init parameters"""
-        self.params = {}
+        self.params = {'a': 10, 'b': 10, 'c': 0.1, 'd': 0.9, 'e': 0.00001}
         # a,b fixed weights in F1 layer; should not be zero
-        self.params['a'] = 10
-        self.params['b'] = 10
         # c fixed weight used in testing for reset
-        self.params['c'] = 0.1
         # d activation of winning F2 unit
-        self.params['d'] = 0.9
         # c*d / (1-d)  must be less than or equal to one
         # as ratio --> 1 for greater vigilance
-        self.params['e'] = 0.00001
         # small param to prevent division by zero
 
         # self.L = 2
@@ -146,7 +141,9 @@ class ART2(object):
         self.vi = None
 
         """Other helpers"""
-        self.log = None
+        self.log = logging.getLogger(__name__)
+
+        self.n_epochs = 1
 
     def compute(self, all_data):
         """Process and learn from all data
@@ -222,7 +219,7 @@ class ART2(object):
         for idata in all_data:
             self.si = idata  # input vector F0
 
-            self.learning_trial()
+            self.learning_trial(idata)
 
         return True
 
@@ -266,7 +263,7 @@ class ART2(object):
             c = self.params['c']
             term1 = norm(self.ui + c*self.ui)
             term2 = norm(self.ui) + c*norm(self.ui)
-            self.ri = term1 / term2
+            self.ri = term1 / (term2 + 1e-10)
 
             if self.ri >= (self.rho - e):
                 self.log.info("\tReset is False: Candidate is good.")
@@ -277,6 +274,7 @@ class ART2(object):
                 self._update_F1_activation()
                 # TODO: this will update ui twice. Confirm ok
             elif self.ri < (self.rho - e):
+                print(self.ri, self.rho - e)
                 self.reset = True
                 self.log.info("\treset is True")
                 self.yj[J] = -1.0
